@@ -1,7 +1,7 @@
 ﻿{
   "name": "ErenshorLevelDisplay",
-  "version_number": "1.0.0",
+  "version_number": "1.1.0",
   "website_url": "https://github.com/drizzlx/erenshor-leveldisplay",
-  "description": "Displays mob and sim player levels in their name.",
+  "description": "Display mob levels in name tags and target window. Optional display SimPlayer levels.",
   "dependencies": [ "BepInEx-BepInExPack-5.4.2100" ]
 }
