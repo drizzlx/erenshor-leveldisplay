@@ -43,7 +43,7 @@ public class LevelDisplayPlugin : BaseUnityPlugin
         DisplayNamePlateRangeMultiplier = Config.Bind(
             "Display",
             "DisplayNameTagRangeMultiplier",
-            2.0f,
+            1.5f,
             "Multiplier for distance to render mob name tags."
         );
     }
