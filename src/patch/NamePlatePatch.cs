@@ -5,79 +5,51 @@ using TMPro;
 
 namespace LevelDisplay.patch
 {
+	[HarmonyPatch(typeof(NPC), "Start")]
+	public static class NamePlatePatch
+	{
+		// NPC List
+		private static readonly string[] _bankNpcs = { "Prestigio Valusha", "Validus Greencent", "Comstock Retalio", "Summoned: Pocket Rift" };
+		private static readonly string[] _otherNpcs = { "Thella Steepleton", "Goldie Retalio" };
 
-    [HarmonyPatch(typeof(NPC), "Start")]
-    public static class NamePlatePatch
-    {
-        // NPC List
-        private static readonly string[] _bankNpcs = { "Prestigio Valusha", "Validus Greencent", "Comstock Retalio", "Summoned: Pocket Rift" };
-        private static readonly string[] _otherNpcs = { "Thella Steepleton", "Goldie Retalio" };
-        
-        [HarmonyPostfix]
-        public static void Postfix(NPC __instance)
-        {
-            var myStatsField = typeof(NPC).GetField("MyStats", BindingFlags.NonPublic | BindingFlags.Instance);
-            var characterField = typeof(NPC).GetField("Myself", BindingFlags.NonPublic | BindingFlags.Instance);
+		[HarmonyPostfix]
+		public static void Postfix(NPC __instance) {
+			var myStats = typeof(NPC).GetField("MyStats", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(__instance) as Stats;
+			var character = typeof(NPC).GetField("Myself", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(__instance) as Character;
+			var namePlate = __instance.NamePlate?.GetComponent<TextMeshPro>();
 
-            if (myStatsField != null && characterField != null)
-            {
-                var myStats = myStatsField.GetValue(__instance) as Stats;
-                var character = characterField.GetValue(__instance) as Character;
-                var namePlate = __instance.NamePlate?.GetComponent<TextMeshPro>();
-                
-                if (myStats == null || character == null || namePlate == null)
-                    return;
-                
-                if (character.MyNPC.SimPlayer)
-                {
-                    if (LevelDisplayPlugin.DisplaySimPlayerLevelAboveHead.Value)
-                    {
-                        namePlate.text = __instance.NPCName + " [" + myStats.Level + "]";
-                        
-                        if (__instance.GuildName != "")
-                        {
-                            namePlate.text = namePlate.text + "\n<" + __instance.GuildName + ">";
-                        }
-                    }
+			if (myStats == null || character == null || namePlate == null)
+				return;
 
-                    return;
-                }
+			var playerLevel = GameData.PlayerControl.Myself.MyStats.Level;
 
-                if (IsMob(__instance))
-                {
-                    if (LevelDisplayPlugin.DisplayMobLevelAboveHead.Value)
-                    {
-                        namePlate.text = __instance.NPCName + " [" + myStats.Level + "]";
-                    }
-                }
-            }
-        }
+			if (character.MyNPC.SimPlayer || IsMob(__instance)) {
+				if (LevelDisplayPlugin.DisplaySimPlayerLevelAboveHead.Value) {
+					var num = LevelDisplayPlugin.DisplayLevelAsOffset.Value ? (myStats.Level - playerLevel) : myStats.Level;
+					namePlate.text = __instance.NPCName + " [" + num + "]";
 
-        public static bool IsMob(NPC npc)
-        {
-            var characterField = typeof(NPC).GetField("Myself", BindingFlags.NonPublic | BindingFlags.Instance);
+					if (character.MyNPC.SimPlayer && __instance.GuildName != "") {
+						namePlate.text = namePlate.text + "\n<" + __instance.GuildName + ">";
+					}
+				}
 
-            if (characterField == null)
-                return false;
-                        
-            var character = characterField.GetValue(npc) as Character;
+				return;
+			}
+		}
 
-            if (character == null)
-                return false;
-                        
-            var npcDialogueManager = character.GetComponent<NPCDialogManager>();
-                
-            if (npc.SimPlayer || 
-                npcDialogueManager != null || 
-                character.isVendor ||
-                _bankNpcs.Contains(character.MyNPC.NPCName) ||
-                _otherNpcs.Contains(character.MyNPC.NPCName) ||
-                character.MiningNode)
-            {
-                return false;
-            }
+		public static bool IsMob(NPC npc)
+		{
+			var character = typeof(NPC).GetField("Myself", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(npc) as Character;
 
-            return true;
-        }
-    }
+			if (character == null)
+				return false;
+
+			return !(npc.SimPlayer
+				|| character.TryGetComponent<NPCDialogManager>(out _)
+				|| character.isVendor
+				|| _bankNpcs.Contains(character.MyNPC.NPCName)
+				|| _otherNpcs.Contains(character.MyNPC.NPCName)
+				|| character.MiningNode);
+		}
+	}
 }
