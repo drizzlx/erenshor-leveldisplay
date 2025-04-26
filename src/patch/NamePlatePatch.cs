@@ -16,40 +16,38 @@ namespace LevelDisplay.patch
         [HarmonyPostfix]
         public static void Postfix(NPC __instance)
         {
-            var myStatsField = typeof(NPC).GetField("MyStats", BindingFlags.NonPublic | BindingFlags.Instance);
-            var characterField = typeof(NPC).GetField("Myself", BindingFlags.NonPublic | BindingFlags.Instance);
+            var myStats = typeof(NPC).GetField("MyStats", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(__instance) as Stats;
+            var character = typeof(NPC).GetField("Myself", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(__instance) as Character;
+            var namePlate = __instance.NamePlate?.GetComponent<TextMeshPro>();
 
-            if (myStatsField != null && characterField != null)
+            if (myStats == null || character == null || namePlate == null)
+                return;
+                
+            if (LevelDisplayPlugin.DisplaySimPlayerLevelAboveHead.Value && character.MyNPC.SimPlayer)
             {
-                var myStats = myStatsField.GetValue(__instance) as Stats;
-                var character = characterField.GetValue(__instance) as Character;
-                var namePlate = __instance.NamePlate?.GetComponent<TextMeshPro>();
-                
-                if (myStats == null || character == null || namePlate == null)
-                    return;
-                
-                if (character.MyNPC.SimPlayer)
-                {
-                    if (LevelDisplayPlugin.DisplaySimPlayerLevelAboveHead.Value)
-                    {
-                        namePlate.text = __instance.NPCName + " [" + myStats.Level + "]";
+                var playerLevel = GameData.PlayerControl.Myself.MyStats.Level;
+                var displayText = LevelDisplayPlugin.DisplaySimLevelAsOffset.Value 
+                    ? (myStats.Level - playerLevel) : myStats.Level;
+                    
+                namePlate.text = __instance.NPCName + " [" + displayText + "]";
                         
-                        if (__instance.GuildName != "")
-                        {
-                            namePlate.text = namePlate.text + "\n<" + __instance.GuildName + ">";
-                        }
-                    }
-
-                    return;
-                }
-
-                if (IsMob(__instance))
+                if (__instance.GuildName != "")
                 {
-                    if (LevelDisplayPlugin.DisplayMobLevelAboveHead.Value)
-                    {
-                        namePlate.text = __instance.NPCName + " [" + myStats.Level + "]";
-                    }
+                    namePlate.text = namePlate.text + "\n<" + __instance.GuildName + ">";
                 }
+
+                return;
+            }
+
+            if (LevelDisplayPlugin.DisplayMobLevelAboveHead.Value && IsMob(__instance))
+            {
+                var playerLevel = GameData.PlayerControl.Myself.MyStats.Level;
+                var displayText = LevelDisplayPlugin.DisplayMobLevelAsOffset.Value 
+                    ? (myStats.Level - playerLevel) : myStats.Level;
+                    
+                namePlate.text = __instance.NPCName + " [" + displayText + "]";
             }
         }
 
